@@ -22,10 +22,20 @@ def extractBasicData( basicData ):
 		 'travelTime' : basicData.get('travelTime', {}).get('duration'),
 		 'freeFlowTravelTime' : basicData['freeFlowTravelTime']['duration'] }
 
-def toDateTimeIso( dateTime ):
+def toDateTimeIso( dateTimeString ):
 	""
-	#return datetime.datetime.strptime(dateTime, '%Y-%m-%dT%H:%M:%S%z')
-	return parser.parse(dateTime)
+	return parser.parse(dateTimeString)
+
+def queryEnhanced( dateTime ):
+	""
+	return { 'year' : dateTime.year,
+		 'month' : dateTime.month,
+		 'day' : dateTime.day,
+		 'dayOfWeek' : dateTime.isoweekday(),
+		 'week' : dateTime.isocalendar()[1],
+		 'hour' : dateTime.hour,
+		 'min' : dateTime.minute,
+		 'sec' : dateTime.second}
 
 
 url = 'https://www.vegvesen.no/ws/no/vegvesen/veg/trafikkpublikasjon/reisetid/1/GetTravelTimeData'
@@ -38,8 +48,10 @@ xml = r.text
 doc = xmltodict.parse(xml)
 
 payloadPublication = doc['d2LogicalModel']['payloadPublication']
+publicationTime = toDateTimeIso(payloadPublication['publicationTime'])
 
-data = {'publicationTime' : toDateTimeIso(payloadPublication['publicationTime']),
+data = {'publicationTime' : publicationTime,
+	'publicationTimeSplit' : queryEnhanced(publicationTime),
 	'publicationCreator' : payloadPublication['publicationCreator']['nationalIdentifier'],
 	'legData' : extractElaboratedData(payloadPublication['elaboratedData'])
 }
@@ -48,7 +60,7 @@ mongoUri = os.getenv('MONGOLAB_URI', 'mongodb://localhost:27017/testdb')
 print('Using mongodb url=%s', mongoUri)
 client = pymongo.MongoClient(mongoUri)
 db = client.get_default_database()
-collection = db.test_collection
+collection = db.vegvesen_traveltime
 id = collection.insert_one(data)
 print('Added new document for traveltime, id=%s', str(id.inserted_id))
 

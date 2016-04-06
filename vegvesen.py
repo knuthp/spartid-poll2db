@@ -12,11 +12,16 @@ xml = r.text
 
 doc = xmltodict.parse(xml)
 
-print(doc['d2LogicalModel']['exchange']['supplierIdentification']['nationalIdentifier'])
-print(doc['d2LogicalModel']['exchange'])
+payloadPublication = doc['d2LogicalModel']['payloadPublication']
+
+data = {'publicationTime' : payloadPublication['publicationTime'],
+	'publicationCreator' : payloadPublication['publicationCreator']['nationalIdentifier'],
+	'elaboratedData' : [ {'id' : payloadPublication['elaboratedData'][0]['basicData']['pertinentLocation']['predefinedLocationReference']['@id'] }]
+}
 
 client = pymongo.MongoClient()
 db = client.test_database
 collection = db.test_collection
-id = collection.insert_one(doc)
+id = collection.insert_one(data)
 print(id)
+print(collection.find_one({"_id": id.inserted_id}))

@@ -2,6 +2,7 @@ import os
 import requests
 import xmltodict
 import pymongo
+from dateutil import parser
 
 def extractElaboratedData( elaboratedData ):
 	""
@@ -21,6 +22,11 @@ def extractBasicData( basicData ):
 		 'travelTime' : basicData.get('travelTime', {}).get('duration'),
 		 'freeFlowTravelTime' : basicData['freeFlowTravelTime']['duration'] }
 
+def toDateTimeIso( dateTime ):
+	""
+	#return datetime.datetime.strptime(dateTime, '%Y-%m-%dT%H:%M:%S%z')
+	return parser.parse(dateTime)
+
 
 url = 'https://www.vegvesen.no/ws/no/vegvesen/veg/trafikkpublikasjon/reisetid/1/GetTravelTimeData'
 username = os.environ.get('VEGVESEN_USERNAME')
@@ -33,7 +39,7 @@ doc = xmltodict.parse(xml)
 
 payloadPublication = doc['d2LogicalModel']['payloadPublication']
 
-data = {'publicationTime' : payloadPublication['publicationTime'],
+data = {'publicationTime' : toDateTimeIso(payloadPublication['publicationTime']),
 	'publicationCreator' : payloadPublication['publicationCreator']['nationalIdentifier'],
 	'legData' : extractElaboratedData(payloadPublication['elaboratedData'])
 }

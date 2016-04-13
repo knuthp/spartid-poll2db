@@ -1,3 +1,5 @@
 /hloc/
 localenv
 ENV
+.project
+.pydevproject

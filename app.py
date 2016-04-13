@@ -27,6 +27,6 @@ def hello():
 	return flask.jsonify(ret)
 
 if __name__ == '__main__':
-    app.debug = True
-    app.run()
+	app.debug = True
+	app.run()
 

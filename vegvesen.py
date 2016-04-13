@@ -5,29 +5,25 @@ import pymongo
 from dateutil import parser
 
 def extractElaboratedData( elaboratedData ):
-	""
 	legsDict = {}
 	for leg in elaboratedData:
 		legData = extractBasicData(leg['basicData'])
-		legsDict[legData['id']] = legData
+		legsDict[legData['objectId']] = legData
 		# print(legData)
 
 	return legsDict
 
 def extractBasicData( basicData ):
-	""
-	return { 'id' : basicData['pertinentLocation']['predefinedLocationReference']['@id'],
+	return { 'objectId' : basicData['pertinentLocation']['predefinedLocationReference']['@id'],
 		 'travelTimeTrendType' : basicData.get('travelTimeTrendType'),
 		 'travelTimeType' : basicData.get('travelTimeType'),
 		 'travelTime' : basicData.get('travelTime', {}).get('duration'),
 		 'freeFlowTravelTime' : basicData['freeFlowTravelTime']['duration'] }
 
 def toDateTimeIso( dateTimeString ):
-	""
 	return parser.parse(dateTimeString)
 
 def queryEnhanced( dateTime ):
-	""
 	return { 'year' : dateTime.year,
 		 'month' : dateTime.month,
 		 'day' : dateTime.day,
@@ -61,7 +57,7 @@ print('Using mongodb url=%s', mongoUri)
 client = pymongo.MongoClient(mongoUri)
 db = client.get_default_database()
 collection = db.vegvesen_traveltime
-id = collection.insert_one(data)
-print('Added new document for traveltime, id=%s', str(id.inserted_id))
+objectId = collection.insert_one(data)
+print('Added new document for traveltime, objectId.inserted_id=%s', str(objectId.inserted_id))
 
 

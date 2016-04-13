@@ -1,63 +1,72 @@
 import os
 import requests
 import xmltodict
-import pymongo
 from dateutil import parser
+import mongodb
 
-def extractElaboratedData( elaboratedData ):
-	legsDict = {}
-	for leg in elaboratedData:
-		legData = extractBasicData(leg['basicData'])
-		legsDict[legData['objectId']] = legData
-		# print(legData)
+class Vegvesen:
+	username = ""
+	password = ""
+	
+	def __init__(self):
+		self.username = os.environ.get('VEGVESEN_USERNAME')
+		self.password = os.environ.get('VEGVESEN_PASSWORD')
+		
+	def getTravelTime(self):
+		url = 'https://www.vegvesen.no/ws/no/vegvesen/veg/trafikkpublikasjon/reisetid/1/GetTravelTimeData'
+		r = requests.get(url, auth=(self.username, self.password))
+		return TravelTime(r.text)
 
-	return legsDict
+class TravelTime:
+	doc = {}
+	def __init__(self, xml):
+		self.doc = xmltodict.parse(xml)
 
-def extractBasicData( basicData ):
-	return { 'objectId' : basicData['pertinentLocation']['predefinedLocationReference']['@id'],
-		 'travelTimeTrendType' : basicData.get('travelTimeTrendType'),
-		 'travelTimeType' : basicData.get('travelTimeType'),
-		 'travelTime' : basicData.get('travelTime', {}).get('duration'),
-		 'freeFlowTravelTime' : basicData['freeFlowTravelTime']['duration'] }
+	def toJson(self):
+		payloadPublication = self.doc['d2LogicalModel']['payloadPublication']
+		publicationTime = self.toDateTimeIso(payloadPublication['publicationTime'])
 
-def toDateTimeIso( dateTimeString ):
-	return parser.parse(dateTimeString)
+		data = {'publicationTime' : publicationTime,
+			'publicationTimeSplit' : self.queryEnhanced(publicationTime),
+			'publicationCreator' : payloadPublication['publicationCreator']['nationalIdentifier'],
+			'legData' : self.extractElaboratedData(payloadPublication['elaboratedData'])
+			}
+		return data
 
-def queryEnhanced( dateTime ):
-	return { 'year' : dateTime.year,
-		 'month' : dateTime.month,
-		 'day' : dateTime.day,
-		 'dayOfWeek' : dateTime.isoweekday(),
-		 'week' : dateTime.isocalendar()[1],
-		 'hour' : dateTime.hour,
-		 'min' : dateTime.minute,
-		 'sec' : dateTime.second}
+	def extractElaboratedData(self, elaboratedData ):
+		legsDict = {}
+		for leg in elaboratedData:
+			legData = self.extractBasicData(leg['basicData'])
+			legsDict[legData['objectId']] = legData
+			# print(legData)
+	
+		return legsDict
+	
+	def extractBasicData(self, basicData ):
+		return { 'objectId' : basicData['pertinentLocation']['predefinedLocationReference']['@id'],
+			 'travelTimeTrendType' : basicData.get('travelTimeTrendType'),
+			 'travelTimeType' : basicData.get('travelTimeType'),
+			 'travelTime' : basicData.get('travelTime', {}).get('duration'),
+			 'freeFlowTravelTime' : basicData['freeFlowTravelTime']['duration'] }
+	
+	def toDateTimeIso(self, dateTimeString ):
+		return parser.parse(dateTimeString)
+	
+	def queryEnhanced(self, dateTime ):
+		return { 'year' : dateTime.year,
+			 'month' : dateTime.month,
+			 'day' : dateTime.day,
+			 'dayOfWeek' : dateTime.isoweekday(),
+			 'week' : dateTime.isocalendar()[1],
+			 'hour' : dateTime.hour,
+			 'min' : dateTime.minute,
+			 'sec' : dateTime.second}
 
 
-url = 'https://www.vegvesen.no/ws/no/vegvesen/veg/trafikkpublikasjon/reisetid/1/GetTravelTimeData'
-username = os.environ.get('VEGVESEN_USERNAME')
-password = os.environ.get('VEGVESEN_PASSWORD')
-r = requests.get(url, auth=(username, password))
+vegvesen = Vegvesen()
+travelTime = vegvesen.getTravelTime()
 
-xml = r.text
-
-doc = xmltodict.parse(xml)
-
-payloadPublication = doc['d2LogicalModel']['payloadPublication']
-publicationTime = toDateTimeIso(payloadPublication['publicationTime'])
-
-data = {'publicationTime' : publicationTime,
-	'publicationTimeSplit' : queryEnhanced(publicationTime),
-	'publicationCreator' : payloadPublication['publicationCreator']['nationalIdentifier'],
-	'legData' : extractElaboratedData(payloadPublication['elaboratedData'])
-}
-
-mongoUri = os.getenv('MONGOLAB_URI', 'mongodb://localhost:27017/testdb')
-print('Using mongodb url=%s', mongoUri)
-client = pymongo.MongoClient(mongoUri)
-db = client.get_default_database()
-collection = db.vegvesen_traveltime
-objectId = collection.insert_one(data)
-print('Added new document for traveltime, objectId.inserted_id=%s', str(objectId.inserted_id))
+mongodbPoll = mongodb.MongoPoll();
+mongodbPoll.addTravelTime(travelTime.toJson())
 
 

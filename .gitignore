@@ -3,3 +3,4 @@ localenv
 ENV
 .project
 .pydevproject
+*.pyc

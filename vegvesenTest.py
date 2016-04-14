@@ -14,6 +14,10 @@ class LocationsTest(unittest.TestCase):
             location = vegvesen.Locations(self.data);
             self.assertEquals(location.toJson()['predefinedLocations']['100249']['name'], "Lagunen - Birkelandskrysset")
 
+    def testOneGeoLocations(self):
+            location = vegvesen.Locations(self.data);
+            self.assertEquals(location.toJson()['predefinedLocations']['100249']['geolocations']['utm33'][:2], [{'x' : -37016, 'y' : 6723367}, {'x' : -37000, 'y' : 6723366}])
+
     def testReadAllLocations(self):
             location = vegvesen.Locations(self.data);
             self.assertEquals(len(location.toJson()['predefinedLocations']), 156)

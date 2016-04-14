@@ -32,7 +32,8 @@ class Locations:
 		publicationTime = self.toDateTimeIso(payloadPublication['publicationTime'])
 
 		data = {'publicationTime' : publicationTime,
-			'predefinedLocations' : self.extractPredefinedLocations(payloadPublication['predefinedLocationContainer'])}
+			'predefinedLocations' : self.extractPredefinedLocations(payloadPublication['predefinedLocationContainer'])
+			}
 		return data
 	
 	
@@ -46,7 +47,18 @@ class Locations:
 		for location in predefinedLocationContainer:
 			locationId = location['@id']
 			locationName =  location['predefinedLocationName']['values']['value']['#text']
-			locationsDict[locationId] = { 'name' : locationName }
+			utm33String = location['location']['linearExtension']['linearLineStringExtension']['gmlLineString']['coordinates']
+			utm33List = [x.strip() for x in utm33String.split(',', )]
+			utm33 = []
+			for pos in utm33List:
+				splitPos = pos.split()
+				utm33.append({'x': int(splitPos[0]), 'y': int(splitPos[1])})
+				
+			locationsDict[locationId] = { 'name' : locationName,
+										'geolocations' : {
+														'utm33' : utm33 
+														}		
+ 									}
 		return locationsDict
 	
 	def toDateTimeIso(self, dateTimeString ):

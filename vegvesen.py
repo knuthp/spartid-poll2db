@@ -2,7 +2,6 @@ import os
 import requests
 import xmltodict
 from dateutil import parser
-import mongodb
 
 class Vegvesen:
 	username = ""
@@ -98,9 +97,3 @@ class TravelTime:
 			 'min' : dateTime.minute,
 			 'sec' : dateTime.second}
 
-
-vegvesen = Vegvesen()
-mongodbPoll = mongodb.MongoPoll();
-
-travelTime = vegvesen.getTravelTime()
-mongodbPoll.addTravelTime(travelTime)

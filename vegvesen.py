@@ -16,7 +16,44 @@ class Vegvesen:
 		url = 'https://www.vegvesen.no/ws/no/vegvesen/veg/trafikkpublikasjon/reisetid/1/GetTravelTimeData'
 		r = requests.get(url, auth=(self.username, self.password))
 		return TravelTime(r.text)
+	
+	def getLocations(self):
+		url = 'https://www.vegvesen.no/ws/no/vegvesen/veg/trafikkpublikasjon/reisetid/1/GetPredefinedTravelTimeLocations'
+		r = requests.get(url, auth=(self.username, self.password))
+		return Locations(r.text)
 
+
+class Locations:
+	doc = {}
+	def __init__(self, xml):		
+		self.doc = xmltodict.parse(xml)
+		
+	def toJson(self):
+		payloadPublication = self.doc['d2LogicalModel']['payloadPublication']
+		publicationTime = self.toDateTimeIso(payloadPublication['publicationTime'])
+
+		data = {'publicationTime' : publicationTime,
+			'predefinedLocations' : self.extractPredefinedLocations(payloadPublication['predefinedLocationContainer'])}
+		return data
+	
+	
+	
+	def getPublicationTime(self):
+		payloadPublication = self.doc['d2LogicalModel']['payloadPublication']
+		return self.toDateTimeIso(payloadPublication['publicationTime'])
+	
+	def extractPredefinedLocations(self, predefinedLocationContainer):
+		locationsDict = {}
+		for location in predefinedLocationContainer:
+			locationId = location['@id']
+			locationName =  location['predefinedLocationName']['values']['value']['#text']
+			locationsDict[locationId] = { 'name' : locationName }
+		return locationsDict
+	
+	def toDateTimeIso(self, dateTimeString ):
+		return parser.parse(dateTimeString)
+		
+	
 class TravelTime:
 	doc = {}
 	def __init__(self, xml):
@@ -37,13 +74,12 @@ class TravelTime:
 		legsDict = {}
 		for leg in elaboratedData:
 			legData = self.extractBasicData(leg['basicData'])
-			legsDict[legData['objectId']] = legData
-			# print(legData)
+			legsDict[legData['id']] = legData
 	
 		return legsDict
 	
 	def extractBasicData(self, basicData ):
-		return { 'objectId' : basicData['pertinentLocation']['predefinedLocationReference']['@id'],
+		return { 'id' : basicData['pertinentLocation']['predefinedLocationReference']['@id'],
 			 'travelTimeTrendType' : basicData.get('travelTimeTrendType'),
 			 'travelTimeType' : basicData.get('travelTimeType'),
 			 'travelTime' : basicData.get('travelTime', {}).get('duration'),
@@ -64,9 +100,7 @@ class TravelTime:
 
 
 vegvesen = Vegvesen()
-travelTime = vegvesen.getTravelTime()
-
 mongodbPoll = mongodb.MongoPoll();
-mongodbPoll.addTravelTime(travelTime.toJson())
 
-
+travelTime = vegvesen.getTravelTime()
+mongodbPoll.addTravelTime(travelTime)

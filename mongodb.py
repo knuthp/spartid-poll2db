@@ -1,6 +1,9 @@
 import pymongo
 import os
 import logging
+from datetime import datetime
+from datetime import timedelta
+from dateutil import tz
 
 class MongoPoll:
     client = {}
@@ -27,3 +30,30 @@ class MongoPoll:
         else:
             logging.info('Already existing location %s', locations.getPublicationTime())
             return False
+    
+    def getStats(self):
+        return {'travelTime' : self.getStatsTravelTime(), 'locations' : self.getStatsLocations() }
+    
+    def getStatsTravelTime(self):
+        collection = self.getDb().vegvesen_traveltime
+        ret = {}
+        ret['count'] = str(collection.count())
+        lastItem = collection.find().sort("$natural", -1).limit(1)[0]
+        ret['last'] = {'dateTime' : str(lastItem['publicationTime']),
+                       'legCount' :  str(len(lastItem['legData']))}
+        today = datetime.utcnow().date()
+        yesterday = today - timedelta(1)
+        start = datetime(today.year, today.month, today.day, tzinfo=tz.tzutc())
+        yesterdayStart = datetime(yesterday.year, yesterday.month, yesterday.day, tzinfo=tz.tzutc())
+        ret['today'] = { 'count' : collection.find({"publicationTime" : { "$gte" : start} }).count() }
+        ret['yesterday'] = { 'count' : collection.find({"publicationTime" : { "$gte" : yesterdayStart, "$lte" : start,} }).count() }
+        return ret
+    
+    def getStatsLocations(self):
+        collection = self.getDb().vegvesen_locations
+        ret = {}
+        ret['count'] = str(collection.count())
+        lastItem = collection.find().sort("$natural", -1).limit(1)[0]
+        ret['last'] = {'dateTime' : str(lastItem['publicationTime']),
+                       'legCount' : str(len(lastItem['predefinedLocations'])) }
+        return ret

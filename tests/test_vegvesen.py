@@ -1,8 +1,7 @@
+import os
+
 import unittest
 import vegvesen 
-
-
-
 class LocationsTest(unittest.TestCase):
     data = ""
     
@@ -24,7 +23,8 @@ class LocationsTest(unittest.TestCase):
 
     def setUp(self):
         unittest.TestCase.setUp(self)
-        filename = "tests/data/GetPredefinedTravelTimeLocations.xml"
+        path = os.path.dirname(__file__)
+        filename = path + "/data/GetPredefinedTravelTimeLocations.xml"
         with open (filename, "r") as myfile:
             self.data=myfile.read()
         

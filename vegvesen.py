@@ -66,20 +66,24 @@ class Locations:
 		
 	
 class TravelTime:
-	doc = {}
+	data = {}
+	
 	def __init__(self, xml):
-		self.doc = xmltodict.parse(xml)
+		self.toDict(xml)
 
-	def toJson(self):
-		payloadPublication = self.doc['d2LogicalModel']['payloadPublication']
+	def toDict(self, xml):
+		doc = xmltodict.parse(xml)
+		payloadPublication = doc['d2LogicalModel']['payloadPublication']
 		publicationTime = self.toDateTimeIso(payloadPublication['publicationTime'])
 
-		data = {'publicationTime' : publicationTime,
+		self.data = {'publicationTime' : publicationTime,
 			'publicationTimeSplit' : self.queryEnhanced(publicationTime),
 			'publicationCreator' : payloadPublication['publicationCreator']['nationalIdentifier'],
 			'legData' : self.extractElaboratedData(payloadPublication['elaboratedData'])
 			}
-		return data
+	
+	def toJson(self):
+		return self.data
 
 	def extractElaboratedData(self, elaboratedData ):
 		legsDict = {}
@@ -95,7 +99,11 @@ class TravelTime:
 			 'travelTimeType' : basicData.get('travelTimeType'),
 			 'travelTime' : basicData.get('travelTime', {}).get('duration'),
 			 'freeFlowTravelTime' : basicData['freeFlowTravelTime']['duration'] }
-	
+
+	def updateLegData(self, legId, legData):
+		leg = self.data['legData'][legId]
+		leg['travelTime'] = legData['travelTime']
+
 	def toDateTimeIso(self, dateTimeString ):
 		return parser.parse(dateTimeString)
 	
@@ -108,4 +116,16 @@ class TravelTime:
 			 'hour' : dateTime.hour,
 			 'min' : dateTime.minute,
 			 'sec' : dateTime.second}
+
+	
+	def diff(self, oldTravelTime2):
+		diff = []
+		for leg in self.data['legData']:
+			new = self.data['legData'][leg]
+			old = oldTravelTime2['legData'][leg]
+			if new != old :
+				diff.append({'id' : leg, 'old' : old, 'new' : new})
+		return diff
+	
+	
 

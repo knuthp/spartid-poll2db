@@ -21,6 +21,10 @@ class MongoPoll:
         objectId = self.db.vegvesen_traveltime.insert_one(travelTime.toJson())
         logging.info('Added new document for traveltime, objectId.inserted_id=%s', str(objectId.inserted_id))
         return objectId
+    
+    def getLastTravelTime(self):
+        return self.db.vegvesen_traveltime.find().sort("$natural", -1).limit(1)[0]        
+        
         
     def addLocationsIfNew(self, locations):
         if (self.db.vegvesen_locations.find({"publicationTime" : locations.getPublicationTime()}).count() == 0):

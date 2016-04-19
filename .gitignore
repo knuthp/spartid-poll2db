@@ -1,6 +1,6 @@
 /hloc/
 localenv
-ENV
+.env
 .project
 .pydevproject
 *.pyc

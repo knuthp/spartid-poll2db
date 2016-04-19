@@ -1,6 +1,7 @@
 import vegvesen
 import mongodb
 import logging
+import messaging
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -11,7 +12,11 @@ mongodbPoll = mongodb.MongoPoll();
 travelTime = vegvesen.getTravelTime()
 
 lastItem = mongodbPoll.getLastTravelTime()
-logging.info(travelTime.diff(lastItem))
+diff = travelTime.diff(lastItem)
+logging.info(diff)
+
+messaging = messaging.VegvesenMessages()
+messaging.publishChanges(diff)
 
 mongodbPoll.addTravelTime(travelTime)
 

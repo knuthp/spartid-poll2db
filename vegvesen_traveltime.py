@@ -12,11 +12,12 @@ mongodbPoll = mongodb.MongoPoll();
 travelTime = vegvesen.getTravelTime()
 
 lastItem = mongodbPoll.getLastTravelTime()
-diff = travelTime.diff(lastItem)
-logging.info(diff)
+if lastItem:
+	diff = travelTime.diff(lastItem)
+	logging.info(diff)
 
-messaging = messaging.VegvesenMessages()
-messaging.publishChanges(diff)
+	messaging = messaging.VegvesenMessages()
+	messaging.publishChanges(diff)
 
 mongodbPoll.addTravelTime(travelTime)
 

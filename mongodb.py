@@ -23,7 +23,10 @@ class MongoPoll:
         return objectId
     
     def getLastTravelTime(self):
-        return self.db.vegvesen_traveltime.find().sort("$natural", -1).limit(1)[0]        
+	if self.db.vegvesen_traveltime.count() > 0:
+        	return self.db.vegvesen_traveltime.find().sort("$natural", -1).limit(1)[0]        
+	else:
+		return None
         
         
     def addLocationsIfNew(self, locations):

@@ -1,5 +1,11 @@
 #!/bin/sh
 ENV=hloc
+UNAME=`uname`
+if [ "$UNAME" == "Linux" ]; then
+  BIN=bin
+else
+  BIN=Scripts
+fi
 virtualenv $ENV
-. $ENV/Scripts/activate
+. $ENV/$BIN/activate
 pip install -r requirements.txt

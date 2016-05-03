@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from datetime import timedelta
 from dateutil import tz
+from pip._vendor.ipaddress import collapse_addresses
 
 class MongoPoll:
     client = {}
@@ -28,6 +29,9 @@ class MongoPoll:
 	else:
 		return None
         
+    def getHistory(self, query):
+        limit = query.get('limit', 10)
+        return list(self.db.vegvesen_traveltime.find().sort("$natural", -1).limit(limit))
         
     def addLocationsIfNew(self, locations):
         if (self.db.vegvesen_locations.find({"publicationTime" : locations.getPublicationTime()}).count() == 0):
@@ -64,3 +68,7 @@ class MongoPoll:
         ret['last'] = {'dateTime' : str(lastItem['publicationTime']),
                        'legCount' : str(len(lastItem['predefinedLocations'])) }
         return ret
+
+    
+    
+    
